@@ -209,7 +209,7 @@ export default function Index() {
         </View>
       </View>
     </TouchableOpacity>
-  );
+  );;
 
   const listHeader = (
     <ScrollView
@@ -250,15 +250,44 @@ export default function Index() {
       <View style={styles.topbar}>
         <Text style={[styles.logo, { color: textColor }]}>RAMP</Text>
         <View style={styles.buttons}>
-          <Image
-            style={[styles.icon, { tintColor: textColor }]}
-            source={peers}
-          />
-          <Image style={[styles.icon, { tintColor: textColor }]} source={Qr} />
-          <Image
-            style={[styles.icon, { tintColor: textColor }]}
-            source={Account}
-          />
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/peers",
+              })
+            }
+          >
+            <Image
+              style={[styles.icon, { tintColor: textColor }]}
+              source={peers}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/qr",
+              })
+            }
+          >
+            <Image
+              style={[styles.icon, { tintColor: textColor }]}
+              source={Qr}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/account",
+              })
+            }
+          >
+            <Image
+              style={[styles.icon, { tintColor: textColor }]}
+              source={Account}
+            />
+          </TouchableOpacity>
         </View>
       </View>
 

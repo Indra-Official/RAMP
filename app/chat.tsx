@@ -5,33 +5,204 @@ import {
   Platform,
   StatusBar,
   Image,
+  FlatList,
   useColorScheme,
   StyleSheet,
-} from 'react-native';
-import { router } from 'expo-router';
+  TextInput,
+  TouchableOpacity,
+} from "react-native";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useKeyboardHandler } from "react-native-keyboard-controller";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 
 export default function Chat() {
-  const back = require('../assets/img/Back.png');
+  const back = require("../assets/img/Back.png");
+  const dots = require("../assets/img/Dot.png");
+  const plus = require("../assets/img/Plus.png");
+  const pay = require("../assets/img/Pay.png");
+  const send = require("../assets/img/Send.png");
+
   const colorScheme = useColorScheme();
-  const textColor = colorScheme === 'dark' ? '#fff' : '#000';
-  const backgroundColor = colorScheme === 'dark' ? '#000' : '#fff';
+  const textColor = colorScheme === "dark" ? "#fff" : "#000";
+  const lColor = colorScheme === "dark" ? "#cececeff" : "#999";
+  const backgroundColor = colorScheme === "dark" ? "#000" : "#fff";
+  const redColor = "#d40000";
 
   const statusBarHeight =
-    Platform.OS === 'android' ? StatusBar.currentHeight ?? 0 : 0;
+    Platform.OS === "android" ? StatusBar.currentHeight ?? 0 : 0;
+  const params = useLocalSearchParams<{ id: string; title: string }>();
+  const { id, title } = params;
+
+  type data = {
+    tey: string;
+    sender: string;
+    message: string;
+    time: string;
+  };
+
+  const [inputValue, setInputValue] = useState("");
+  const [messages, setMessages] = useState<data[]>([]);
+
+  const listRef = useRef<FlatList>(null);
+
+  const scrollToBottom = useCallback(() => {
+    listRef.current?.scrollToEnd({ animated: true });
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  const sendMessage = () => {
+    if (!inputValue.trim()) return;
+
+    const time = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    const newData = {
+      tey: Date.now().toString(),
+      sender: "You",
+      message: inputValue,
+      time,
+    };
+
+    setMessages((prev) => [...prev, newData]);
+    setInputValue("");
+  };
+
+  const renderMessage = ({ item }: { item: data }) => (
+    <TouchableOpacity>
+      <View
+        style={[
+          styles.container,
+          item.sender === "You" ? styles.rightAlign : styles.leftAlign,
+        ]}
+      >
+        <View
+          style={[
+            styles.bubble,
+            item.sender === "You"
+              ? styles.currentUserBubble
+              : styles.otherUserBubble,
+          ]}
+        >
+          {item.sender !== "You" && (
+            <Text style={styles.sender}>{item.sender}</Text>
+          )}
+          <Text style={[styles.message, { color: textColor }]}>
+            {item.message}
+          </Text>
+          <View style={styles.timeContainer}>
+            <Text style={styles.time}>{item.time}</Text>
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const useGradualAnimation = () => {
+    const height = useSharedValue(0);
+    useKeyboardHandler(
+      {
+        onMove: (e) => {
+          "worklet";
+          height.value = Math.max(e.height, 0);
+        },
+        onEnd: (e) => {
+          "worklet";
+          height.value = e.height;
+        },
+      },
+      []
+    );
+    return { height };
+  };
+
+  const { height } = useGradualAnimation();
+  const fakeView = useAnimatedStyle(() => {
+    return {
+      height: Math.abs(height.value),
+      marginBottom: height.value > 0 ? 0 : 0,
+    };
+  }, []);
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor,        // match root/stack contentStyle
-        paddingTop: statusBarHeight,
-      }}>
+    <View style={{ flex: 1, backgroundColor }}>
+      <View style={{ height: statusBarHeight, backgroundColor }} />
+
+      <View style={[styles.topBar, { backgroundColor }]}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
           <Image
             style={[styles.icon, { tintColor: textColor }]}
             source={back}
           />
         </Pressable>
+
+        <View style={styles.titleBlock}>
+          <View style={[styles.GrpImg, { backgroundColor: textColor }]} />
+          <View style={styles.titleText}>
+            <Text style={[styles.title, { color: textColor }]}>{title}</Text>
+            <Text style={[styles.online, { color: lColor }]}>Online</Text>
+          </View>
+        </View>
+
+        <Pressable onPress={() => {}} hitSlop={10}>
+          <Image
+            style={[styles.icon, { tintColor: textColor }]}
+            source={dots}
+          />
+        </Pressable>
+      </View>
+
+      <View style={{ flex: 1, paddingHorizontal: 10 }}>
+        <FlatList
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item.tey}
+          ref={listRef}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: 4,
+          }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          onContentSizeChange={scrollToBottom}
+        />
+      </View>
+
+      <View>
+        <View style={[styles.inputBar, { backgroundColor }]}>
+          <View style={styles.inputContainer}>
+            <Image source={plus} style={styles.smallIcon} />
+            <TextInput
+              placeholder="Message"
+              placeholderTextColor={lColor}
+              style={styles.input}
+              returnKeyType="send"
+              value={inputValue}
+              onChangeText={setInputValue}
+              onSubmitEditing={sendMessage}
+            />
+            <Image source={pay} style={styles.smallIcon} />
+          </View>
+
+          <Pressable
+            style={[styles.sendButton, { backgroundColor: redColor }]}
+            onPress={sendMessage}
+          >
+            <Image source={send} style={styles.sendIcon} />
+          </Pressable>
+        </View>
+        <Animated.View style={fakeView} />
+      </View>
     </View>
   );
 }
@@ -39,17 +210,123 @@ export default function Chat() {
 const styles = StyleSheet.create({
   topBar: {
     height: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
+    flexDirection: "row",
+    paddingHorizontal: 10,
+    alignItems: "center",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "#cececeff",
   },
   icon: {
     width: 30,
     height: 30,
   },
+  titleBlock: {
+    flex: 1,
+    flexDirection: "row",
+    marginLeft: 12,
+    alignItems: "center",
+  },
+  GrpImg: {
+    width: 40,
+    height: 40,
+    borderRadius: 40,
+  },
+  titleText: {
+    marginLeft: 14,
+    flex: 1,
+  },
   title: {
     fontSize: 18,
-    marginLeft: 12,
-    fontWeight: '600',
+    fontWeight: "500",
+  },
+  online: {
+    fontWeight: "400",
+    fontSize: 14,
+  },
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  inputContainer: {
+    flex: 1,
+    height: 50,
+    backgroundColor: "#2b2b2b",
+    borderRadius: 21,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+  },
+  input: {
+    flex: 1,
+    color: "#fff",
+    fontSize: 15,
+    marginHorizontal: 8,
+  },
+  smallIcon: {
+    width: 30,
+    height: 30,
+    tintColor: "#ffffff",
+  },
+  sendButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 21,
+    paddingLeft: 12,
+    paddingTop: 0.5,
+    justifyContent: "center",
+  },
+  sendIcon: {
+    width: 23,
+    height: 23,
+    tintColor: "#ffffff",
+  },
+  container: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    marginVertical: 4,
+    paddingHorizontal: 12,
+  },
+  leftAlign: {
+    justifyContent: "flex-start",
+  },
+  rightAlign: {
+    flexDirection: "row-reverse",
+  },
+  bubble: {
+    maxWidth: "80%",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  currentUserBubble: {
+    backgroundColor: "#1C1C1C",
+    marginRight: 8,
+    borderBottomRightRadius: 2,
+  },
+  otherUserBubble: {
+    backgroundColor: "#1C1C1C",
+    marginLeft: 8,
+    borderBottomLeftRadius: 4,
+  },
+  sender: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#FF0000",
+    marginBottom: 4,
+  },
+  message: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  timeContainer: {
+    alignSelf: "flex-end",
+    marginTop: 4,
+  },
+  time: {
+    fontSize: 12,
+    color: "#7A7A7A",
   },
 });
