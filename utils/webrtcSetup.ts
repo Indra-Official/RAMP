@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { RTCPeerConnection, RTCIceCandidate, RTCSessionDescription } from 'react-native-webrtc';
-import io, { Socket } from 'socket.io-client';
+import io from 'socket.io-client';
 
 interface WebRTCMessage {
   message: string;
 }
 
-export const useWebRTCChat = (socket: Socket, roomId: string) => {
+export const useWebRTCChat = (socket: ReturnType<typeof io>, roomId: string) => {
   const [messages, setMessages] = useState<WebRTCMessage[]>([]);
   const pc = useRef<RTCPeerConnection | null>(null);
   const dc = useRef<any>(null);
@@ -16,19 +16,8 @@ export const useWebRTCChat = (socket: Socket, roomId: string) => {
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     });
 
-    pc.current.ondatachannel = (event: any) => {
-      dc.current = event.channel;
-      dc.current.onopen = () => console.log('Chat ready');
-      dc.current.onmessage = (event: any) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'chat') {
-          setMessages(prev => [...prev, { message: data.message }]);
-        }
-      };
-    };
-
     try {
-      dc.current = pc.current.createDataChannel('chat');
+      dc.current = pc.current!.createDataChannel('chat');
       dc.current.onopen = () => console.log('Chat ready');
       dc.current.onmessage = (event: any) => {
         const data = JSON.parse(event.data);
@@ -64,13 +53,11 @@ export const useWebRTCChat = (socket: Socket, roomId: string) => {
       }
     });
 
-    const handleIceCandidate = (event: any) => {
-      if (event.candidate && pc.current) {
+    (pc.current as any).onicecandidate = (event: any) => {
+      if (event.candidate) {
         socket.emit('ice-candidate', event.candidate);
       }
     };
-    
-    pc.current.addEventListener('icecandidate', handleIceCandidate);
 
     pc.current.createOffer().then(async (offer) => {
       await pc.current?.setLocalDescription(offer);
@@ -81,7 +68,7 @@ export const useWebRTCChat = (socket: Socket, roomId: string) => {
       socket.off('offer');
       socket.off('answer');
       socket.off('ice-candidate');
-      pc.current?.removeEventListener('icecandidate', handleIceCandidate);
+      (pc.current as any).onicecandidate = null;
       pc.current?.close();
     };
   }, [socket, roomId]);

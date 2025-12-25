@@ -47,6 +47,14 @@
           "cameraPermission": "Allow RAMP to access your camera for video chat.",
           "microphonePermission": "Allow RAMP to access your microphone for voice chat."
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
       ]
     ],
     "experiments": {
