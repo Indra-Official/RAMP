@@ -19,7 +19,6 @@ export default function Index() {
         
         <View>
           <Image source={peers} />
-          <Image source={Qr} />
           <Image source={Account} />
         </View>
 

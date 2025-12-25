@@ -18,6 +18,8 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
 } from "react-native-reanimated";
+import { useWebRTCChat } from '../utils/webrtcSetup';
+import io from 'socket.io-client';
 
 export default function Chat() {
   const back = require("../assets/img/Back.png");
@@ -25,6 +27,12 @@ export default function Chat() {
   const plus = require("../assets/img/Plus.png");
   const pay = require("../assets/img/Pay.png");
   const send = require("../assets/img/Send.png");
+
+  const params = useLocalSearchParams<{ id: string; title: string }>();
+  const { id, title } = params;
+  const roomId = id;
+  const socket = io('ws://your-signaling-server:8080');
+  const { messages: webRTCMessages, sendMessage: sendWebRTCMessage } = useWebRTCChat(socket, roomId);
 
   const colorScheme = useColorScheme();
   const textColor = colorScheme === "dark" ? "#fff" : "#000";
@@ -34,8 +42,6 @@ export default function Chat() {
 
   const statusBarHeight =
     Platform.OS === "android" ? StatusBar.currentHeight ?? 0 : 0;
-  const params = useLocalSearchParams<{ id: string; title: string }>();
-  const { id, title } = params;
 
   type data = {
     tey: string;
@@ -46,6 +52,25 @@ export default function Chat() {
 
   const [inputValue, setInputValue] = useState("");
   const [messages, setMessages] = useState<data[]>([]);
+
+  useEffect(() => {
+    webRTCMessages.forEach((msg) => {
+      const time = new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          tey: Date.now().toString(),
+          sender: "Other",
+          message: msg.message,
+          time: time,
+        },
+      ]);
+    });
+  }, [webRTCMessages]);
 
   const listRef = useRef<FlatList>(null);
 
@@ -74,6 +99,7 @@ export default function Chat() {
     };
 
     setMessages((prev) => [...prev, newData]);
+    sendWebRTCMessage(inputValue);
     setInputValue("");
   };
 
@@ -149,7 +175,9 @@ export default function Chat() {
           <View style={[styles.GrpImg, { backgroundColor: textColor }]} />
           <View style={styles.titleText}>
             <Text style={[styles.title, { color: textColor }]}>{title}</Text>
-            <Text style={[styles.online, { color: lColor }]}>Online</Text>
+            <Text style={[styles.online, { color: lColor }]}>
+              P2P Chat
+            </Text>
           </View>
         </View>
 
