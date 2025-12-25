@@ -70,7 +70,7 @@ export default function Chat() {
       tey: Date.now().toString(),
       sender: "You",
       message: inputValue,
-      time,
+      time: time,
     };
 
     setMessages((prev) => [...prev, newData]);
@@ -93,7 +93,7 @@ export default function Chat() {
               : styles.otherUserBubble,
           ]}
         >
-          {item.sender !== "You" && (
+          {item.sender === "You" && (
             <Text style={styles.sender}>{item.sender}</Text>
           )}
           <Text style={[styles.message, { color: textColor }]}>
