@@ -29,6 +29,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withWifiP2P.js",
       [
         "expo-splash-screen",
         {
@@ -55,7 +56,8 @@
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
